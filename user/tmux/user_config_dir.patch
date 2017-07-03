@@ -1,0 +1,13 @@
+diff --git i/cfg.c w/cfg.c
+index 32a92e1..984d665 100644
+--- i/cfg.c
++++ w/cfg.c
+@@ -63,7 +63,7 @@ start_cfg(void)
+ 	load_cfg(TMUX_CONF, cfg_cmd_q, 1);
+ 
+ 	if (cfg_file == NULL && (home = find_home()) != NULL) {
+-		xasprintf(&cfg_file, "%s/.tmux.conf", home);
++		xasprintf(&cfg_file, "%s/@user_config_dir@/tmux.conf", home);
+ 		quiet = 1;
+ 	}
+ 	if (cfg_file != NULL)

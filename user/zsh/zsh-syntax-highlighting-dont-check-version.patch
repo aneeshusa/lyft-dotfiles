@@ -1,0 +1,13 @@
+diff --git i/zsh-syntax-highlighting.zsh w/zsh-syntax-highlighting.zsh
+index de3fea9..64b8252 100644
+--- i/zsh-syntax-highlighting.zsh
++++ w/zsh-syntax-highlighting.zsh
+@@ -30,7 +30,7 @@
+ 
+ # Set $0 to the expected value, regardless of functionargzero.
+ 0=${(%):-%N}
+-if true; then
++if false; then
+   # $0 is reliable
+   ZSH_HIGHLIGHT_VERSION=$(<"${0:A:h}"/.version)
+   ZSH_HIGHLIGHT_REVISION=$(<"${0:A:h}"/.revision-hash)

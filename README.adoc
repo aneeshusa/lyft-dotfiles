@@ -1,0 +1,6 @@
+= Dotfiles
+
+Temporary dotfiles repo. To be expanded soon.
+
+Copyright (C) 2017 Aneesh Agrawal
+All rights reserved.

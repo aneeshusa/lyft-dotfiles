@@ -1,0 +1,13 @@
+source "@zaw@/zaw.zsh"
+set +o nounset
+source "@zshSyntaxHighlighting@/zsh-syntax-highlighting.zsh"
+set -o nounset
+source "@zshHistorySubstringSearch@/zsh-history-substring-search.zsh"
+bindkey '^[[A' history-substring-search-up
+bindkey '^[[B' history-substring-search-down
+
+@zshAliases@
+
+set +o errexit
+set +o nounset
+set +o pipefail

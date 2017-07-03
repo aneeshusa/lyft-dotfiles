@@ -1,0 +1,13 @@
+diff --git i/httpie/config.py w/httpie/config.py
+index f728238..3366be6 100644
+--- i/httpie/config.py
++++ w/httpie/config.py
+@@ -8,7 +8,7 @@ from httpie.compat import is_windows
+ 
+ DEFAULT_CONFIG_DIR = str(os.environ.get(
+     'HTTPIE_CONFIG_DIR',
+-    os.path.expanduser('~/.httpie') if not is_windows else
++    os.path.expanduser('~/@user_config_dir@') if not is_windows else
+     os.path.expandvars(r'%APPDATA%\\httpie')
+ ))
+ 

@@ -1,0 +1,15 @@
+# Bash sources /etc/profile first
+if [[ -v ZSH_VERSION ]]; then
+    if [[ -f '/etc/profile' || -h '/etc/profile' ]]; then
+        emulate sh -c 'source /etc/profile'
+    fi
+fi
+
+umask 077
+
+if [[ "${PATH}" != "${HOME}/bin:"* ]]; then
+    export PATH="${HOME}/bin:${PATH}"
+fi
+
+@envVars@
+@extraConfig@

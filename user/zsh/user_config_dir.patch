@@ -1,0 +1,13 @@
+diff --git i/Src/init.c w/Src/init.c
+index 20a07eb..9eeaeb9 100644
+--- i/Src/init.c
++++ w/Src/init.c
+@@ -1238,7 +1238,7 @@ run_init_scripts(void)
+ 		}
+ 	    }
+ 
+-	    sourcehome(".zshenv");
++	    sourcehome("@user_config_dir@/zshenv");
+ 	}
+ 	if (islogin) {
+ #ifdef GLOBAL_ZPROFILE

@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+
+usage() {
+    cat <<HEREDOC
+usage: $0 [--help]
+HEREDOC
+}
+
+
+have() {
+    which >/dev/null 2>/dev/null "$@"
+}
+
+
+install_nix() {
+    set -x # Nice to have as a progress indicator.
+
+
+    # Install regular (single-user) Nix
+    sudo mkdir --parents "/nix"
+    sudo chown "${USER}:${USER}" "/nix"
+    # Note bash not sh, their install script is NOT portable as they claim
+    curl "https://nixos.org/nix/install" \
+        | tail --lines=+3 \
+        | tee /tmp/nix_install/full_installer_script.sh | bash
+    local NIX_BUILD_PATH
+    NIX_BUILD_PATH="$(readlink -f "${HOME}/.nix-profile/bin/nix-build")"
+    declare -r NIX_BUILD_PATH
+    rm "${HOME}/.nix-channels"
+    rm --recursive "${HOME}/.nix-defexpr"
+
+
+    # Set up build users and file permissions for multi-user Nix
+    sudo groupadd --system "nixbld"
+    for n in $(seq 1 10); do
+        sudo useradd \
+            --system \
+            --comment "Nix build user ${n}" \
+            --home-dir "/var/empty" \
+            --gid "nixbld" \
+            --no-user-group \
+            --groups "nixbld" \
+            --shell "$(which "nologin")" \
+            -M \
+            "nixbld${n}";
+    done
+    sudo mkdir "/etc/nix"
+    cat <<'EOF' | sudo tee >/dev/null "/etc/nix/nix.conf"
+binary-cache-public-keys = aneesh@maseeh-server.mit.edu-1:bbXSEvVSVPRfUFMZQCetwpXNSXzaHqOY1V3accodD6I= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+binary-caches = https://maseeh-server.mit.edu/binary_caches/aneesh https://cache.nixos.org
+build-cores = 3
+build-max-jobs = 2
+build-use-sandbox = true
+build-users-group = nixbld
+signed-binary-caches = *
+verify-https-binary-caches = true
+EOF
+    sudo chown --recursive "root:nixbld" "/nix"
+    sudo chmod 1777 "/nix/var/nix/profiles/per-user"
+    sudo mkdir --mode=1777 --parents "/nix/var/nix/gcroots/per-user"
+
+    # Convert user's Nix profile for multi-user Nix and nix-daemon service
+    sudo chown "${USER}:${USER}" "/nix/var/nix/profiles/per-user/${USER}"
+    rm /nix/var/nix/profiles/per-user/vagrant/channels
+    rm /nix/var/nix/profiles/per-user/vagrant/channels-1-link
+    ln --symbolic \
+        "$(readlink -f "${HOME}/.nix-profile")" \
+        "/nix/var/nix/profiles/per-user/${USER}/profile-1-link"
+    ln --symbolic \
+        "profile-1-link" \
+        "/nix/var/nix/profiles/per-user/${USER}/profile"
+    rm "${HOME}/.nix-profile"
+    ln --symbolic \
+        "/nix/var/nix/profiles/per-user/${USER}/profile" \
+         "${HOME}/.nix-profile"
+    sudo rm \
+        /nix/var/nix/profiles/default \
+        /nix/var/nix/profiles/default-1-link
+    # shellcheck disable=SC2174
+    mkdir --mode=0755 --parents "/nix/var/nix/gcroots/per-user/${USER}"
+
+
+    # Set up nix-daemon service
+    if have initctl; then # Upstart
+        cat <<EOF | sudo tee >/dev/null "/etc/init/nix-daemon.conf"
+description "Nix Build Daemon"
+author "Aneesh Agrawal"
+
+start on runlevel [2345]
+stop on runlevel [016]
+
+env SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+exec /nix/var/nix/profiles/per-user/${USER}/profile/bin/nix-daemon
+EOF
+        sudo initctl reload-configuration
+        sudo service nix-daemon start
+    elif have systemctl; then # Systemd
+        cat <<EOF | sudo tee >/dev/null "/etc/systemd/system/nix-daemon.service"
+[Unit]
+Description=Nix Build Daemon
+
+[Service]
+Environment=SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
+ExecStart=/nix/var/nix/profiles/per-user/${USER}/profile/bin/nix-daemon
+IgnoreSIGPIPE=false
+KillMode=process
+
+[Install]
+WantedBy=multi-user.target
+EOF
+        sudo systemctl daemon-reload
+        sudo systemctl enable --now nix-daemon
+    else
+        printf >&2 "Unknown init system in use. Aborting.\n"
+        return 1
+    fi
+
+
+    export NIX_REMOTE="daemon" # Use the nix daemon for multi-user builds
+    export PATH="${HOME}/.nix-profile/bin:${PATH}"
+
+
+    local DOTFILES_DIR
+    DOTFILES_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+    declare -r DOTFILES_DIR
+    "$("${NIX_BUILD_PATH}" --no-out-link -A user.config.home.build "${DOTFILES_DIR}/default.nix")/activate"
+
+    # Switch shell
+    local -r new_shell="${HOME}/.nix-profile/bin/zsh"
+    printf "%s\n" "${new_shell}" | sudo tee -a /etc/shells >/dev/null
+    sudo chsh --shell "${new_shell}" "${USER}" >/dev/null
+    export SHELL="${HOME}/.nix-profile/bin/zsh"
+}
+
+
+main() {
+    if [[ $# -gt 1 ]]; then
+        usage >&2
+        return 1
+    elif [[ $# -eq 1 ]]; then
+        if [[ "$1" == "--help" ]]; then
+            usage
+            return 0
+        else
+            usage >&2
+            return 1
+        fi
+    fi
+
+    mkdir --parents /tmp/nix_install
+    time install_nix 2>/tmp/nix_install/install.err.log \
+        | tee /tmp/nix_install/install.out.log
+}
+
+
+main "$@"

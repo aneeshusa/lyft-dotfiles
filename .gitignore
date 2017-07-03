@@ -1,0 +1,8 @@
+# Asciidoctor
+*.html
+
+# Nix
+/result*
+
+# Vagrant
+/.vagrant/

@@ -1,0 +1,22 @@
+set -o errexit
+set -o nounset
+set -o pipefail
+
+autoload -Uz colors && colors
+autoload -Uz promptinit && promptinit; prompt redhat
+
+HISTFILE="$HOME/@loghistDir@/zsh/history"
+mkdir -p "$(dirname "${HISTFILE}")"
+HISTSIZE=10000000
+SAVEHIST=10000000
+
+bindkey '^R' history-incremental-search-backward
+
+@zshOptions@
+@zshConfig@
+
+source "@zshNixCompletions@/nix.plugin.zsh"
+fpath=("$HOME/bin" "@zshNixCompletions@" $fpath)
+autoload -Uz compinit \
+    && mkdir -p "@cacheDir@/zsh" \
+    && compinit -C -d "@cacheDir@/zsh/zcompdump"
