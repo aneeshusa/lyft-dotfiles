@@ -1,0 +1,13 @@
+diff --git i/path.c w/path.c
+index 259aeed..dca01e0 100644
+--- i/path.c
++++ w/path.c
+@@ -1233,7 +1233,7 @@ char *xdg_config_home(const char *filename)
+ 
+ 	home = getenv("HOME");
+ 	if (home)
+-		return mkpathdup("%s/.config/git/%s", home, filename);
++		return mkpathdup("%s/@user_config_dir@/git/%s", home, filename);
+ 	return NULL;
+ }
+ 

@@ -5,6 +5,7 @@
     "checkbashisms"
     "cowsay"
     "file"
+    "git"
     "htop"
     "httpie"
     "icdiff"
